@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useUser, useAuth } from "@clerk/clerk-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -13,11 +14,12 @@ import { toast } from "sonner";
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useUser();
+  const { isSignedIn } = useAuth();
   const [product, setProduct] = useState<any>(null);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [quantity, setQuantity] = useState(1);
-  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -37,14 +39,8 @@ const ProductDetail = () => {
     fetchProduct();
   }, [id]);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-  }, []);
-
   const handleAddToCart = async () => {
-    if (!user) {
+    if (!isSignedIn) {
       toast.error('Please sign in to add items to cart');
       navigate('/auth');
       return;

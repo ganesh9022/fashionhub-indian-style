@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useUser, useAuth } from "@clerk/clerk-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -6,25 +8,25 @@ import { Card } from "@/components/ui/card";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 
 const Cart = () => {
   const navigate = useNavigate();
+  const { user } = useUser();
+  const { isSignedIn } = useAuth();
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchCartItems();
-  }, []);
-
-  const fetchCartItems = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
+    if (!isSignedIn) {
       navigate('/auth');
       return;
     }
+    fetchCartItems();
+  }, [isSignedIn, user]);
 
+  const fetchCartItems = async () => {
+    if (!user) return;
+    
     const { data } = await supabase
       .from('cart_items')
       .select(`

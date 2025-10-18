@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useUser, useAuth } from "@clerk/clerk-react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,11 +10,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Package, TrendingUp } from "lucide-react";
+import { Plus, Package, TrendingUp, Edit } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Admin = () => {
   const navigate = useNavigate();
+  const { user } = useUser();
+  const { isSignedIn } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<any[]>([]);
@@ -21,24 +24,22 @@ const Admin = () => {
 
   useEffect(() => {
     checkAdminStatus();
-  }, []);
+  }, [isSignedIn, user]);
 
   const checkAdminStatus = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
+    if (!isSignedIn) {
       navigate('/auth');
       return;
     }
 
-    const { data } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'admin')
-      .single();
+    if (!user) return;
 
-    if (!data) {
+    // Check if user has admin role in Clerk
+    const hasAdminRole = user.organizationMemberships?.some(
+      membership => membership.role === 'admin'
+    ) || user.publicMetadata?.role === 'admin';
+
+    if (!hasAdminRole) {
       toast.error('Access denied. Admin privileges required.');
       navigate('/');
       return;
